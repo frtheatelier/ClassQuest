@@ -3,6 +3,7 @@ tutorial based on g4g :")
 + https://youtu.be/Rvcyf4HsWiw?si=WK7eG4Km0GI3Qrc7 for text input
 """
 import random
+import time
 
 import pygame
 
@@ -39,7 +40,14 @@ def render_text(user_text: str, input_rectangle: pygame.Rect, input_font: pygame
         pygame.draw.rect(window, "black", input_rectangle, 2)
     else:
         pygame.draw.rect(window, bg_color, input_rectangle, 0)
-    text_surface = input_font.render(user_text, False, "black")
+
+    if "P1" in user_text:
+        color = "red"
+    elif "P2" in user_text:
+        color = "blue"
+    else:
+        color = "black"
+    text_surface = input_font.render(user_text, False, color)
     # w = text_surface.get_width()
     window.blit(text_surface, (input_rectangle.x + 12, input_rectangle.y + 12.5))
     input_rectangle.w = max(text_surface.get_width() + 12, 200) + 12
@@ -156,10 +164,19 @@ def main_game_window(game: g_ent.WordChain):
 
         # IF BOT'S TURN
         if isinstance(curr_player, g_ent.Bot):
-            word = wc.get_bot_input(last_letter, curr_player.word_bank, game.words_used)
-            if word is None:  # todo
+            tmp = wc.get_bot_input(last_letter, curr_player.word_bank, game.words_used)
+            print("Bot is thinking...")
+            pygame.event.set_blocked([pygame.KEYDOWN])
+            for _ in range(3):
+                word += "."
+                pygame.display.update()
+                time.sleep(0.8)
+            pygame.event.set_allowed([pygame.KEYDOWN])
+
+            if tmp is None:  # todo
                 running = trigger_win()
             else:
+                word = tmp
                 wc.update_game_data(curr_player, game, word)
                 print(f"{current[rounds % 2]}: {curr_player.score}")
                 last_word, last_letter, word = word, word[len(word) - 1], ''
