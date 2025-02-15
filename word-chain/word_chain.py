@@ -29,14 +29,14 @@ def tutorial(game: WordChain) -> bool:
     while inp not in game.word_dictionary or inp in game.words_used or inp[0] != 'k':
         inp = input("That's not a word that starts with k! Try again: ")
 
-    _ = input("And that's how it works! press anything to quit")
+    _ = input("And that's how it works! Note that no duplicate words are allowed. Press anything to quit")
 
     return True
 
 
 def setup():
     """
-    Setup games
+    Setup game on console
     :return:
     """
     game_setup = {"players": 0, "bot_first": 0}
@@ -95,6 +95,31 @@ def get_bot_input(last_letter: str, word_dictionary: dict, words_used: set):
         return random.choice(choices)
 
 
+def get_word(curr_player: Bot | Player, last_letter: str, word_dictionary: dict, words_used: set):
+    """
+
+    :param curr_player:
+    :param last_letter:
+    :param word_dictionary:
+    :param words_used:
+    """
+    if isinstance(curr_player, Bot):
+        return get_bot_input(last_letter, curr_player.word_bank, words_used)
+    else:
+        return get_user_input(last_letter, word_dictionary, words_used)
+
+
+def update_game_data(curr_player: Player | Bot, game: WordChain, word: str) -> None:
+    """
+
+    :param curr_player:
+    :param game:
+    :param word:
+    """
+    curr_player.score += 1
+    game.words_used.add(word)
+
+
 def game_play(game: WordChain):
     """
 
@@ -109,38 +134,26 @@ def game_play(game: WordChain):
         else:
             curr_player = game.player2
 
-        # TODO: ERASE PRINT STATEMENT
-        # print("Current player: ", curr_player)
-
-        if isinstance(curr_player, Bot):
-            word = get_bot_input(last_letter, curr_player.word_bank, game.words_used)
-            # if curr_round < 20:
-            #     word = get_bot_input(last_letter, curr_player.starter_words)
-            # else:
-            #     word = get_bot_input(last_letter, curr_player.word_bank)
-        else:
-            word = get_user_input(last_letter, game.word_dictionary, game.words_used)
+        word = get_word(curr_player, last_letter, game.word_dictionary, game.words_used)
 
         if word is None:
             return curr_round
         else:
             print(f"Player {curr_round % 2} chose the word '{word}'!")
-            curr_player.score += 1
-            game.words_used.add(word)
+            update_game_data(curr_player, game, word)
             last_letter = word[len(word) - 1]
             curr_round += 1
 
 
-def run_game():
-    """Running main game"""
+def setup_game(settings: dict):
+    """
 
-    print("Welcome to Word Chain")
-    print("First, let's set up the game")
-    game_setup = setup()
-
-    if game_setup["players"] == 2:
+    :param settings:
+    :return:
+    """
+    if settings["players"] == 2:
         game = WordChain(Player(), Player())
-    elif game_setup["bot_first"] == 1:
+    elif settings["bot_first"] == 1:
         game = WordChain(Bot(), Player())
         # TODO erase print statements
         # print({w[0] for w in game.player1.word_bank})
@@ -148,6 +161,17 @@ def run_game():
         game = WordChain(Player(), Bot())
         # TODO erase print statements
         # print({w[0] for w in game.player1.word_bank})
+
+    return game
+
+
+def run_game():
+    """Running main game in console"""
+
+    print("Welcome to Word Chain")
+    print("First, let's set up the game")
+    game_setup = setup()
+    game = setup_game(game_setup)
 
     inp = input("Have you played the game before? [Enter Yes/No]  ")
 
