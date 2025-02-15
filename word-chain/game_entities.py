@@ -23,7 +23,7 @@ class Bot(Player):
 
     # expert: int
     word_bank: dict
-    starter_words: dict
+    # starter_words: dict
 
     @staticmethod
     def _load_dictionary(filename: str):
@@ -31,15 +31,15 @@ class Bot(Player):
             data = json.load(f)
 
         word_dictionary = {}
-        for word in data:
-            word_dictionary[word] = data[word]
+        for word in data['commonWords']:
+            word_dictionary[word.lower()] = 1
 
         return word_dictionary
 
     def __init__(self):
         super().__init__()
         self.word_bank = self._load_dictionary(JSON_COMMON)
-        self.starter_words = {w: self.word_bank[w] for w in self.word_bank if w[len(w) - 1] in 'EARIOT'}
+        # self.starter_words = {w: self.word_bank[w] for w in self.word_bank if w[len(w) - 1] in 'EARIOT'}
 
 
 class WordChain:
