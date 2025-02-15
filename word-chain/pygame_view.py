@@ -110,8 +110,11 @@ def setup_window():
                 elif event.key == pygame.K_RETURN:
                     if q_id == 0 and user_text in ["1", "2"]:
                         curr_game_setup["players"] = int(user_text)
-                        user_text = ''
-                        q_id += 1
+                        if user_text == 2:
+                            return curr_game_setup
+                        else:
+                            user_text = ''
+                            q_id += 1
                     elif q_id == 1 and user_text in ["1", "2"]:
                         curr_game_setup["bot_first"] = int(user_text)
                         return curr_game_setup
@@ -126,13 +129,44 @@ def setup_window():
         pygame.display.update()
 
 
-def trigger_win():
+def trigger_win(winner: int, scores):
+    """
+
+    :param winner:
+    :param scores:
+    """
     # TODO: TEMP
-    print("SOMEONE WON")
-    return False
+
+    win_font = pygame.font.Font(None, 32)
+    lose_font = pygame.font.Font(None, 24)
+
+    if winner == 0:
+        print("Player 2 wins")
+        win_st = f"Player 2 wins with {scores[1]}!"
+        lose_st = f"Player 1 wins with {scores[0]}!"
+    else:
+        print("Player 1 wins")
+        win_st = f"Player 1 wins with {scores[0]}!"
+        lose_st = f"Player 2 wins with {scores[1]}!"
+
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+        window.fill(bg_color)
+        clock.tick(60)
+
+        win_rec = pygame.Rect(width/2, height/2, 240, 50)
+        lose_rec = pygame.Rect(width/2, height/2+20, 240, 32)
+        render_text(win_st, win_rec, win_font)
+        render_text(win_st, win_rec, lose_font)
+
+        pygame.display.update()
 
 
-def main_game_window(game: g_ent.WordChain):
+def main_game_window(game_obj: g_ent.WordChain):
     """main game"""
     # USER INPUT
     base_font = pygame.font.Font(None, 32)
@@ -158,26 +192,25 @@ def main_game_window(game: g_ent.WordChain):
     while running:
         # curr player
         if rounds % 2 != 0:
-            curr_player = game.player1
+            curr_player = game_obj.player1
         else:
-            curr_player = game.player2
+            curr_player = game_obj.player2
 
         # IF BOT'S TURN
         if isinstance(curr_player, g_ent.Bot):
-            tmp = wc.get_bot_input(last_letter, curr_player.word_bank, game.words_used)
+            tmp = wc.get_bot_input(last_letter, curr_player.word_bank, game_obj.words_used)
             print("Bot is thinking...")
             pygame.event.set_blocked([pygame.KEYDOWN])
             for _ in range(3):
-                word += "."
                 pygame.display.update()
                 time.sleep(0.8)
             pygame.event.set_allowed([pygame.KEYDOWN])
 
             if tmp is None:  # todo
-                running = trigger_win()
+                trigger_win((rounds+1) % 2, [game_obj.player1.score, game_obj.player2.score])
             else:
                 word = tmp
-                wc.update_game_data(curr_player, game, word)
+                wc.update_game_data(curr_player, game_obj, word)
                 print(f"{current[rounds % 2]}: {curr_player.score}")
                 last_word, last_letter, word = word, word[len(word) - 1], ''
                 rounds += 1
@@ -192,8 +225,8 @@ def main_game_window(game: g_ent.WordChain):
                     word = word[0:-1]
                 elif event.key == pygame.K_RETURN:
                     # todo
-                    if word in game.word_dictionary and word not in game.words_used and word[0] == last_letter:
-                        wc.update_game_data(curr_player, game, word)
+                    if word in game_obj.word_dictionary and word not in game_obj.words_used and word[0] == last_letter:
+                        wc.update_game_data(curr_player, game_obj, word)
                         print(f"{current[rounds % 2]}: {curr_player.score}")
                         last_word, last_letter, word = word, word[len(word) - 1], ''
                         rounds += 1
@@ -203,14 +236,21 @@ def main_game_window(game: g_ent.WordChain):
         window.fill(bg_color)
         clock.tick(60)
 
+        if ((rounds % 2 == 0 and isinstance(game_obj.player2, wc.Bot))
+                or rounds % 2 == 1 and isinstance(game_obj.player1, wc.Bot)):
+            enter_word_cap = f"{current[rounds % 2]}: Bot is thinking..."
+        else:
+            enter_word_cap = f"{current[rounds % 2]}: Enter a word starting with the letter {last_letter}"
+
         # todo add render func
         texts = {
             "input_text": word,
             "last_word": last_word,
             "last_word_cap": "The most recent word:",
-            "enter_word_cap": f"{current[rounds % 2]}: Enter a word starting with the letter {last_letter}"
+            "enter_word_cap": enter_word_cap
         }
-        render_main_text(texts, input_rects, last_word_rects, base_font, [game.player1.score, game.player2.score])
+        render_main_text(texts, input_rects, last_word_rects, base_font,
+                         [game_obj.player1.score, game_obj.player2.score])
 
         pygame.display.update()
 
