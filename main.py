@@ -18,7 +18,7 @@ class Puzzle:
 
     def draw(self, frame):
         """Draws the screen and any updates."""
-        bg = pygame.image.load("background.jpeg")
+        bg = pygame.image.load("assets/background.jpeg")
         self.screen.blit(bg, (0, 0))
         frame.draw(self.screen)
         self.instruction()
@@ -41,40 +41,44 @@ class Puzzle:
             self.font = pygame.font.SysFont("Times New Roman", 40)
             self.background_color = background_color
             self.message_color = message_color
-            self.menu()
-            level = self.level_selection()
-            self.screen.fill(background_color)
-            frame = Frame(frame_size, level)
-            self.screen = pygame.display.set_mode((width, height))
-            game = Game()
-            self.running = True
-            pygame.display.update()
-
-            while self.running:
-                for event in pygame.event.get():
-                    if event.type == pygame.KEYDOWN:
-                        if not self.is_arranged:
-                            if game.clicked(event):
-                                frame.handle_click(event)
-
-                    if game.game_over(frame):
-                        self.is_arranged = True
-                        game.message(self.screen, frame)
-                        self.screen = pygame.display.set_mode((menu_width, menu_height))
-                        self.main(frame_size)
-
-                    if event.type == pygame.QUIT:
-                        pygame.quit()
-                        quit(0)
-
-                self.draw(frame)
-                self.instruction()
+            game_choice = self.menu()
+            if game_choice == 1:
+                level = self.level_selection()
+                self.screen.fill(background_color)
+                frame = Frame(frame_size, level)
+                self.screen = pygame.display.set_mode((width, height))
+                game = Game()
+                self.running = True
                 pygame.display.update()
+                while self.running:
+                    for event in pygame.event.get():
+                        if event.type == pygame.KEYDOWN:
+                            if not self.is_arranged:
+                                if game.clicked(event):
+                                    frame.handle_click(event)
+
+                        if game.game_over(frame):
+                            self.is_arranged = True
+                            game.message(self.screen, frame)
+                            self.screen = pygame.display.set_mode((menu_width, menu_height))
+                            self.main(frame_size)
+
+                        if event.type == pygame.QUIT:
+                            pygame.quit()
+                            quit(0)
+
+                    self.draw(frame)
+                    self.instruction()
+                    pygame.display.update()
+            elif game_choice == 2:
+                import pygame_view
+                pygame_view.run_game()
+
 
     def menu(self):
         """Displays the main menu where players can start or quit the game."""
         while True:
-            bg = pygame.image.load("background.jpeg")
+            bg = pygame.image.load("assets/background.jpeg")
             self.screen.blit(bg, (0, 0))
             # title = self.font.render("Sliding Fruits Puzzle!", True, self.message_color)
             play_option = self.font.render("1. Play", True, self.message_color)
@@ -92,15 +96,40 @@ class Puzzle:
 
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_1:
-                        return self.level_selection()
+                        return self.choose_game()
+                        # return self.level_selection()
                     elif event.key == pygame.K_2:
                         pygame.quit()
                         quit()
 
+    def choose_game(self):
+        """Choose which game to play, out of the fruit slider and word chain."""
+        while True:
+            bg = pygame.image.load("assets/background-no-text.jpeg")
+            self.screen.blit(bg, (0, 0))
+
+            game_choice = self.font.render("Choose a game to play!", True, self.message_color)
+            game_1 = self.font.render("1. Fruit Slider", True, self.message_color)
+            game_2 = self.font.render("2. Word Chain", True, self.message_color)
+
+            self.screen.blit(bg, (0, 0))
+            self.screen.blit(game_choice, (500, 200))
+            self.screen.blit(game_1, (500, 250))
+            self.screen.blit(game_2, (500, 300))
+
+            pygame.display.update()
+
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_1:
+                        return 1
+                    elif event.key == pygame.K_2:
+                        return 2
+
     def level_selection(self):
         """Displays the level selection screen and returns the chosen level."""
         while True:
-            bg = pygame.image.load("background-no-text.jpeg")
+            bg = pygame.image.load("assets/background-no-text.jpeg")
             self.screen.blit(bg, (0, 0))
 
             title = self.font.render("Choose a Level", True, self.message_color)

@@ -17,7 +17,7 @@ class Background(pygame.sprite.Sprite):
         self.rect.left, self.rect.top = location
 
 
-bg = Background('../assets/IMG_0717.jpeg', [0, 0])
+bg = Background('assets/background-no-text.jpeg', [0, 0])
 
 if __name__ == "__main__":
     screen = pygame.display.set_mode((WIDTH, HEIGHT))

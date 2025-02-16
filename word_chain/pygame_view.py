@@ -324,6 +324,16 @@ def main_game_window(game_obj: g_ent.WordChain, time_limit: int):
 
         # pygame.display.update()
 
+def run_game():
+    """RUN TEH GAME"""
+    game_setup = setup_window()
+    game = wc.setup_game(game_setup)
+
+    print(f"P1: {type(game.player1)}")
+    print(f"P2: {type(game.player2)}")
+
+    main_game_window(game, game_setup["time_limit"])
+
 
 if __name__ == "__main__":
     game_setup = setup_window()
