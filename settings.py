@@ -1,0 +1,10 @@
+menu_width = 1200
+menu_height = 750
+width = 750
+height = 750
+title = "Sliding Fruit Puzzle"
+tile_size = 3
+game_size = 3
+background_color = (255, 255, 255)
+message_color = (0, 0, 0)
+FRUIT_NAMES = {1: "apple", 2: "banana", 3: "lemon", 4: "orange", 5: "strawberry"}
