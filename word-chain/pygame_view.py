@@ -3,7 +3,9 @@ tutorial based on g4g :")
 + https://youtu.be/Rvcyf4HsWiw?si=WK7eG4Km0GI3Qrc7 for text input
 """
 import random
+import re
 import time
+from copy import deepcopy
 
 import pygame
 
@@ -14,6 +16,7 @@ import word_chain as wc
 pygame.init()
 assert pygame.get_init()
 
+# hold to duplicate keyboard input
 pygame.key.set_repeat(500, 100)
 
 # display set up
@@ -26,6 +29,9 @@ pygame.display.update()
 # other
 clock = pygame.time.Clock()
 bg_color = (238, 238, 228)
+font = None
+
+pygame.time.set_timer(pygame.USEREVENT, 1000)
 
 
 # RENDERING BASIC TEXT
@@ -72,31 +78,36 @@ def render_main_text(turn_text: dict[str, str], input_rects: dict[str, pygame.re
     :param last_word_rects:
     :param input_font:
     """
+    sp_font = pygame.font.Font(font, 40)
+    issue_font = pygame.font.Font(font, 30)
+
     # TEXT INPUT GROUP
     render_text(turn_text["enter_word_cap"], input_rects["caption"], input_font)
     render_text(turn_text["input_text"], input_rects["text_box"], input_font, True)
+    render_text(turn_text["issue"], input_rects["issue"], issue_font)
 
     # LAST WORD GROUP
     render_text(turn_text["last_word_cap"], last_word_rects["caption"], input_font)
-    render_text(turn_text["last_word"], last_word_rects["last_word"], input_font)
+    render_text(turn_text["last_word"], last_word_rects["last_word"], sp_font)
 
     # SCORES
-    p1_rec = pygame.Rect(200, 2*height / 3, 240, 50)
-    p2_rec = pygame.Rect((width - 200) - 12*15, 2*height / 3, 240, 50)
+    p1_rec = pygame.Rect(200, 2 * height / 3, 240, 50)
+    p2_rec = pygame.Rect((width - 200) - 12 * 15, 2 * height / 3, 240, 50)
     render_text(f'P1 score: {str(scores[0])}', p1_rec, input_font)
     render_text(f'P2 score: {str(scores[1])}', p2_rec, input_font)
 
 
 def setup_window():
     """set up"""
-    base_font = pygame.font.Font(None, 32)
+    base_font = pygame.font.Font(font, 32)
     user_text = ''
     text_rect = pygame.Rect(width / 2 - 220, height / 3 - 25, 240, 50)
     input_rect = pygame.Rect(width / 2 - 105, height / 3 + 50, 240, 50)
 
-    curr_game_setup = {"players": 0, "bot_first": 0}
+    curr_game_setup = {"players": 0, "bot_first": 0, "time_limit": 60}
     questions = ["How many players are playing? [1 or 2]",
-                 "Enter 1 for bot to play first, 2 if you want to play first"]
+                 "Enter 1 for bot to play first, 2 if you want to play first.",
+                 "How many seconds do you wish to take?"]
     q_id = 0
     running = True
     while running:
@@ -110,13 +121,18 @@ def setup_window():
                 elif event.key == pygame.K_RETURN:
                     if q_id == 0 and user_text in ["1", "2"]:
                         curr_game_setup["players"] = int(user_text)
-                        if user_text == 2:
-                            return curr_game_setup
-                        else:
+                        if user_text == "2":
+                            user_text = ''
+                            q_id = 2
+                        elif user_text == "1":
                             user_text = ''
                             q_id += 1
                     elif q_id == 1 and user_text in ["1", "2"]:
                         curr_game_setup["bot_first"] = int(user_text)
+                        user_text = ''
+                        q_id += 1
+                    elif q_id == 2 and user_text.isnumeric() and 5 < int(user_text) <= 60:
+                        curr_game_setup["time_limit"] = int(user_text)
                         return curr_game_setup
                 else:
                     user_text += event.unicode
@@ -129,7 +145,7 @@ def setup_window():
         pygame.display.update()
 
 
-def trigger_win(winner: int, scores):
+def trigger_win(winner: int, scores) -> bool:
     """
 
     :param winner:
@@ -137,8 +153,17 @@ def trigger_win(winner: int, scores):
     """
     # TODO: TEMP
 
-    win_font = pygame.font.Font(None, 32)
-    lose_font = pygame.font.Font(None, 24)
+    # WIN/LOSE
+    win_font = pygame.font.Font(font, 100)
+    lose_font = pygame.font.Font(font, 50)
+    win_rec = pygame.Rect(width / 2 - 350, height / 3, 240, 100)
+    lose_rec = pygame.Rect(width / 2 - 350, height / 3 + 100, 240, 75)
+
+    # RETRY TEXTBOX
+    text_rect = pygame.Rect(width / 2 - 250, 2*height / 3, 240, 50)
+    input_rect = pygame.Rect(width / 2 - 105, 2*height / 3, 240, 50)
+    try_again = pygame.font.Font(font, 32)
+    user_inp = ''
 
     if winner == 0:
         print("Player 2 wins")
@@ -155,21 +180,36 @@ def trigger_win(winner: int, scores):
             if event.type == pygame.QUIT:
                 running = False
 
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_BACKSPACE:
+                    user_inp = user_inp[0:-1]
+                elif event.key == pygame.K_RETURN:
+                    clean_txt = re.sub(r'[^a-zA-Z0-9]', '', user_inp)
+                    if clean_txt.lower() in ["tryagain", "yes", "y"]:
+                        return True
+                    else:
+                        return False
+                else:
+                    user_inp += event.unicode
+
         window.fill(bg_color)
         clock.tick(60)
 
-        win_rec = pygame.Rect(width/2, height/2, 240, 50)
-        lose_rec = pygame.Rect(width/2, height/2+20, 240, 32)
         render_text(win_st, win_rec, win_font)
-        render_text(win_st, win_rec, lose_font)
+        render_text(lose_st, lose_rec, lose_font)
+
+        render_text("Try again?", text_rect, try_again)
+        render_text(user_inp, input_rect, try_again, True)
 
         pygame.display.update()
 
 
-def main_game_window(game_obj: g_ent.WordChain):
+def main_game_window(game_obj: g_ent.WordChain, time_limit: int):
     """main game"""
+    time_left = time_limit
+
     # USER INPUT
-    base_font = pygame.font.Font(None, 32)
+    base_font = pygame.font.Font(font, 32)
     word = ''
 
     # text rects
@@ -179,18 +219,24 @@ def main_game_window(game_obj: g_ent.WordChain):
     }
     input_rects = {
         "caption": pygame.Rect(width / 2 - 220, height / 3, 240, 50),
-        "text_box": pygame.Rect(width / 3, height / 3 + 50, 240, 50)
+        "text_box": pygame.Rect(width / 3, height / 3 + 50, 240, 50),
+        "issue": pygame.Rect(width / 3, height / 3 + 100, 240, 50)
     }
+    time_rect = pygame.Rect(width / 2 - 150, 2 * height / 3, 240, 50)
 
     # game text
     current = ["P2 turn", "P1 turn"]
     last_word = '...'
+    issue = ''
     last_letter = random.choice('nesgjwdombiuhpycltarqkfv'.lower())
 
     running = True
     rounds = 1
+    og_game_state = deepcopy(game_obj)
     while running:
         # curr player
+        pygame.display.update()
+
         if rounds % 2 != 0:
             curr_player = game_obj.player1
         else:
@@ -201,19 +247,20 @@ def main_game_window(game_obj: g_ent.WordChain):
             tmp = wc.get_bot_input(last_letter, curr_player.word_bank, game_obj.words_used)
             print("Bot is thinking...")
             pygame.event.set_blocked([pygame.KEYDOWN])
-            for _ in range(3):
-                pygame.display.update()
-                time.sleep(0.8)
+            time.sleep(1.5)
             pygame.event.set_allowed([pygame.KEYDOWN])
 
             if tmp is None:  # todo
-                trigger_win((rounds+1) % 2, [game_obj.player1.score, game_obj.player2.score])
+                running = trigger_win((rounds + 1) % 2, [game_obj.player1.score, game_obj.player2.score])
+                issue, time_left = '', time_limit
+                game_obj = og_game_state
             else:
                 word = tmp
                 wc.update_game_data(curr_player, game_obj, word)
                 print(f"{current[rounds % 2]}: {curr_player.score}")
-                last_word, last_letter, word = word, word[len(word) - 1], ''
+                last_word, last_letter, word, issue = word, word[len(word) - 1], '', ''
                 rounds += 1
+                time_left = time_limit + 1
 
         # IF USER TURN
         for event in pygame.event.get():
@@ -224,14 +271,28 @@ def main_game_window(game_obj: g_ent.WordChain):
                 if event.key == pygame.K_BACKSPACE:
                     word = word[0:-1]
                 elif event.key == pygame.K_RETURN:
-                    # todo
                     if word in game_obj.word_dictionary and word not in game_obj.words_used and word[0] == last_letter:
                         wc.update_game_data(curr_player, game_obj, word)
                         print(f"{current[rounds % 2]}: {curr_player.score}")
-                        last_word, last_letter, word = word, word[len(word) - 1], ''
+                        last_word, last_letter, word, issue = word, word[len(word) - 1], '', ''
                         rounds += 1
+                        time_left = time_limit + 1
+                    elif word not in game_obj.word_dictionary:
+                        issue = "That is not a word!"
+                    elif word in game_obj.words_used:
+                        issue = "A player sent that word!"
+                    elif word[0] != last_letter:
+                        issue = f"Word doesn't start with the letter {last_letter}"
                 else:
                     word += event.unicode
+
+            if event.type == pygame.USEREVENT:
+                time_left -= 1
+
+            if time_left <= 0:
+                running = trigger_win((rounds + 1) % 2, [game_obj.player1.score, game_obj.player2.score])
+                issue, time_left = '', time_limit
+                game_obj = og_game_state
 
         window.fill(bg_color)
         clock.tick(60)
@@ -247,12 +308,15 @@ def main_game_window(game_obj: g_ent.WordChain):
             "input_text": word,
             "last_word": last_word,
             "last_word_cap": "The most recent word:",
-            "enter_word_cap": enter_word_cap
+            "enter_word_cap": enter_word_cap,
+            "issue": issue
         }
         render_main_text(texts, input_rects, last_word_rects, base_font,
                          [game_obj.player1.score, game_obj.player2.score])
 
-        pygame.display.update()
+        render_text(f"Seconds left: {time_left}", time_rect, base_font)
+
+        # pygame.display.update()
 
 
 if __name__ == "__main__":
@@ -262,4 +326,4 @@ if __name__ == "__main__":
     print(f"P1: {type(game.player1)}")
     print(f"P2: {type(game.player2)}")
 
-    main_game_window(game)
+    main_game_window(game, game_setup["time_limit"])
